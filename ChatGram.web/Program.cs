@@ -69,6 +69,7 @@ app.UseAntiforgery();
 
 app.MapHub<MessageHub>("/messageHub");
 app.MapHub<NotificationHub>("/notificationHub");
+app.MapHub<ChatHub>("/chatHub");
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

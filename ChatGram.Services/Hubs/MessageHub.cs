@@ -14,22 +14,32 @@ namespace ChatGram.Services.Hubs
             _messageRepository = messageRepository;
         }
 
+        public async Task JoinPrivateChat(Guid chatId)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"private-chat-{chatId}");
+        }
+
+        public async Task LeavePrivateChat(Guid chatId)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"private-chat-{chatId}");
+        }
+
         public async Task SendTextMessage(TextMessage message)
         {
             TextMessageDto textMessageDto = (await _messageRepository.GetMessage(message.Id) as TextMessageDto);
-            await Clients.All.SendAsync("ReceiveTextMessage", textMessageDto);
+            await Clients.Group($"private-chat-{message.ChatId}").SendAsync("ReceiveTextMessage", textMessageDto);
         }
 
         public async Task SendFileMessage(FileMessage message)
         {
             FileMessageDto fileMessageDto = (await _messageRepository.GetMessage(message.Id) as FileMessageDto);
-            await Clients.All.SendAsync("ReceiveFileMessage", fileMessageDto);
+            await Clients.Group($"private-chat-{message.ChatId}").SendAsync("ReceiveFileMessage", fileMessageDto);
         }
 
         public async Task SendGeoMessage(GeoMessage message)
         {
             GeoMessageDto geoMessageDto = (await _messageRepository.GetMessage(message.Id) as GeoMessageDto);
-            await Clients.All.SendAsync("ReceiveGeoMessage", geoMessageDto);
+            await Clients.Group($"private-chat-{message.ChatId}").SendAsync("ReceiveGeoMessage", geoMessageDto);
         }
     }
 }

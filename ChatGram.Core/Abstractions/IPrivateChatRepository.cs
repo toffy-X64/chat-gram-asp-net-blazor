@@ -13,6 +13,7 @@ namespace ChatGram.Core.Abstractions
         void Add(PrivateChat chat);
         Task<List<PrivateChatDto>> GetPrivateChats(string userId, int offset, int limit);
         Task<PrivateChatDto> GetPrivateChat(Guid chatId);
+        Task<bool> IsPrivateChatExistsAsync(string senderId, string receiverId);
         Task<int> SaveChangesAsync();
     }
 }

@@ -6,6 +6,10 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.SignalR.Client
+
+@rendermode InteractiveServer
 
 @inject PrivateChatService PrivateChatService;
 @inject UserManager<ApplicationUser> UserManager;
@@ -14,6 +18,25 @@
 @attribute [Authorize]
 
 <h3>Chats</h3>
+
+@if (!string.IsNullOrEmpty(error))
+{
+	<h3>@error</h3>
+}
+
+<EditForm EditContext="editContext" FormName="newChat" OnValidSubmit="AddNewChat" class="d-flex flex-grow-1 gap-2">
+	<DataAnnotationsValidator />
+
+	<InputText @bind-Value="Input.Nickname"
+			   id="Input.Nickname"
+			   class="form-control flex-grow-1"
+			   aria-required="true"
+			   placeholder="Nickname" />
+
+	<button class="btn btn-primary flex-shrink-0 px-4" type="submit">
+		Add new chat
+	</button>
+</EditForm>
 
 @if(_chats.Count <= 0)
 {
@@ -41,9 +64,34 @@ else
 @code {
 	private ApplicationUser? currentUser;
 	private List<PrivateChatDto> _chats = new();
+	private InputModel Input;
+	private EditContext editContext;
+	private string? error;
+	private HubConnection? _hubConnection;
 
 	[CascadingParameter]
 	private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
+
+	public async Task AddNewChat()
+	{
+		var user = await UserManager.FindByNameAsync(Input.Nickname);
+		if (user == null)
+		{
+			error = "User not found!";
+			return;
+		}
+
+		try
+		{
+			PrivateChatDto newChat = await PrivateChatService.CreateNewPrivateChat(currentUser.Id, user.Id);
+			await _hubConnection.SendAsync("AssignNewPrivateChat", newChat);
+			error = "";
+		} 
+		catch(Exception ex)
+		{
+			error = ex.Message;
+		}
+	}
 
 	private string GetMyRoleInPrivateChat(PrivateChatDto chat)
 	{
@@ -55,6 +103,9 @@ else
 
 	protected override async Task OnInitializedAsync()
 	{
+		Input ??= new();
+		editContext = new(Input);
+
 		var authState = await AuthenticationStateTask;
 		var user = authState.User;
 
@@ -66,5 +117,27 @@ else
 		}
 
 		_chats = await PrivateChatService.GetUserPrivateChats(currentUser.Id);
+
+		_hubConnection = new HubConnectionBuilder()
+			.WithUrl(NavigationManager.ToAbsoluteUri("/chatHub"))
+			.WithAutomaticReconnect()
+			.Build();
+
+		_hubConnection.On<PrivateChatDto>("ReceiveNewChat", (PrivateChatDto chat) =>
+		{
+			if (GetMyRoleInPrivateChat(chat) != null)
+			{
+				_chats.Add(chat);
+				InvokeAsync(StateHasChanged);
+			}
+		});
+
+		await _hubConnection.StartAsync();
+	}
+
+	private sealed class InputModel
+	{
+		[Required]
+		public string Nickname { get; set; }
 	}
 }

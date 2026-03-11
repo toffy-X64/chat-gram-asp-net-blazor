@@ -67,6 +67,16 @@ namespace ChatGram.Storage.Repositories
             return query;
         }
 
+        public async Task<bool> IsPrivateChatExistsAsync(string senderId, string receiverId)
+        {
+            var exists = await _context.PrivateChats
+                .AsNoTracking()
+                .Where(x => (x.SenderId == senderId && x.ReceiverId == receiverId) || (x.ReceiverId == senderId && x.SenderId == receiverId) )
+                .AnyAsync();
+
+            return exists;
+        }
+
         public Task<int> SaveChangesAsync()
         {
             return _context.SaveChangesAsync();

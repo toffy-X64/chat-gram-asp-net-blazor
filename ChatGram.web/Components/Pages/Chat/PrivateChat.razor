@@ -14,6 +14,7 @@
 @using ChatGram.web.Components.UiComponents.Chat;
 
 @rendermode InteractiveServer
+@implements IAsyncDisposable
 
 @inject PrivateChatService PrivateChatService;
 @inject MessageService MessageService;
@@ -174,30 +175,38 @@
 
 		_hubConnection.On<TextMessageDto>("ReceiveTextMessage", (TextMessageDto message) =>
 		{
-			if (message.ChatId != currentPrivateChat.Id)
-				return;
-
 			messageHistory.Add(message);
 			InvokeAsync(StateHasChanged);
 		});
 		_hubConnection.On<FileMessageDto>("ReceiveFileMessage", (FileMessageDto message) =>
 		{
-			if (message.ChatId != currentPrivateChat.Id)
-				return;
-
 			messageHistory.Add(message);
 			InvokeAsync(StateHasChanged);
 		});
 		_hubConnection.On<GeoMessageDto>("ReceiveGeoMessage", (GeoMessageDto message) =>
 		{
-			if (message.ChatId != currentPrivateChat.Id)
-				return;
-
 			messageHistory.Add(message);
 			InvokeAsync(StateHasChanged);
 		});
 
 		await _hubConnection.StartAsync();
+
+		if(currentPrivateChat != null)
+		{
+			await _hubConnection.InvokeAsync("JoinPrivateChat", currentPrivateChat.Id);
+		}
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		if (_hubConnection != null)
+		{
+			if (currentPrivateChat != null)
+			{
+				await _hubConnection.InvokeAsync("LeavePrivateChat", currentPrivateChat.Id);
+			}
+			await _hubConnection.DisposeAsync();
+		}
 	}
 
 	private sealed class InputModel
