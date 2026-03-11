@@ -1,0 +1,162 @@
+﻿@page "/chat"
+@using ChatGram.Core.Abstractions
+@using ChatGram.Core.DTOs.Messages
+@using ChatGram.Core.Entities.Message
+@using ChatGram.Core.Services
+@using ChatGram.Storage.Identity
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization;
+@using Microsoft.AspNetCore.Identity
+@using System.ComponentModel.DataAnnotations
+@using ChatGram.web.Components.UiComponents.Chat;
+@using Microsoft.AspNetCore.SignalR.Client;
+
+@rendermode InteractiveServer
+
+@inject MessageService MessageService;
+@inject UserManager<ApplicationUser> UserManager;
+@inject NavigationManager NavigationManager;
+
+@attribute [Authorize]
+
+  
+<h3>Hello, @currentUser?.Nickname</h3>
+
+<div class="row">
+	<div class="col-12 chat-container">
+			@foreach (var message in messageHistory)
+			{
+				@if(message is TextMessageDto)
+				{
+					<TextMessageComponent 
+						Message="@(message as TextMessageDto)" 
+						MyMessage="@(currentUser.Id == message.UserId)"
+					/>
+				}
+
+				@if (message is FileMessageDto)
+				{
+					<FileMessageComponent
+						Message="@(message as FileMessageDto)"
+						MyMessage="@(currentUser.Id == message.UserId)" 
+					/>
+				}
+
+				@if (message is GeoMessageDto)
+				{
+					<GeolocationMessageComponent
+						Message="@(message as GeoMessageDto)"
+						MyMessage="@(currentUser.Id == message.UserId)" 
+					/>
+				}
+			}
+	</div>
+
+	<div class="col-12 d-flex gap-2 py-2 align-items-center">
+		<EditForm EditContext="editContext" OnValidSubmit="SendTextMessage" FormName="textMessage" class="d-flex flex-grow-1 gap-2">
+			<DataAnnotationsValidator />
+
+			<InputText @bind-Value="Input.Text"
+					   id="Input.Text"
+					   class="form-control flex-grow-1"
+					   aria-required="true"
+					   placeholder="Message" />
+
+			<button class="btn btn-primary flex-shrink-0 px-4" type="submit">
+				Send
+			</button>
+		</EditForm>
+
+		<div class="flex-shrink-0">
+			<FileMessageForm 
+				currentUser="@currentUser"
+				OnSend="@OnFileMessageSent"
+			/>
+		</div>
+
+		<div class="flex-shrink-0">
+			<GeoMessageForm 
+				currentUser="@currentUser"
+				OnSend="@OnGeoMessageSent" 
+			/>
+		</div>
+	</div>
+</div>
+
+@code {
+	private ApplicationUser? currentUser;
+	private InputModel Input;
+	private EditContext editContext;
+	private List<MessageDto> messageHistory;
+	private HubConnection? _hubConnection;
+
+	[CascadingParameter]
+	private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
+
+	protected override async Task OnInitializedAsync()
+	{
+		Input ??= new();
+		messageHistory = new();
+		editContext = new(Input);
+
+		var authState = await AuthenticationStateTask;
+		var user = authState.User;
+
+		currentUser = await UserManager.GetUserAsync(user);	
+		if (currentUser is null)
+		{
+			NavigationManager.NavigateTo("/");
+			return;
+		}
+
+		messageHistory = await MessageService.GetMessages(10, 0);
+
+		_hubConnection = new HubConnectionBuilder()
+			.WithUrl(NavigationManager.ToAbsoluteUri("/messageHub"))
+			.WithAutomaticReconnect()
+			.Build();
+
+		_hubConnection.On<TextMessageDto>("ReceiveTextMessage", (TextMessageDto message) =>
+		{
+			messageHistory.Add(message);
+			InvokeAsync(StateHasChanged);
+		});
+		_hubConnection.On<FileMessageDto>("ReceiveFileMessage", (FileMessageDto message) =>
+		{
+			messageHistory.Add(message);
+			InvokeAsync(StateHasChanged);
+		});
+		_hubConnection.On<GeoMessageDto>("ReceiveGeoMessage", (GeoMessageDto message) =>
+		{
+			messageHistory.Add(message);
+			InvokeAsync(StateHasChanged);
+		});
+
+		await _hubConnection.StartAsync();
+	}
+
+	public async Task SendTextMessage()
+	{
+		var textMessage = await MessageService.SendTextMessage(currentUser.Id, Input.Text);
+		await _hubConnection.InvokeAsync("SendTextMessage", textMessage);
+		Input.Text = "";
+	}
+
+	public async Task OnFileMessageSent(FileMessage fileMessage)
+	{
+		await _hubConnection.InvokeAsync("SendFileMessage", fileMessage);
+	}
+
+	public async Task OnGeoMessageSent(GeoMessage geoMessage)
+	{
+		await _hubConnection.InvokeAsync("SendGeoMessage", geoMessage);
+	}
+
+	private sealed class InputModel
+	{
+		[Required]
+		[Display(Name = "Text")]
+		[StringLength(512, ErrorMessage = "Maximum length is 512 symbols")]
+		public string Text { get; set; } = "";
+	}
+}

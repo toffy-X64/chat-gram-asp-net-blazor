@@ -1,0 +1,52 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization;
+@using Microsoft.AspNetCore.SignalR.Client
+
+@rendermode InteractiveServer
+
+@inject NavigationManager NavigationManager;
+
+@attribute [Authorize]
+
+<PageTitle>Home</PageTitle>
+
+<h1>Hello, world!</h1>
+
+Welcome to your new app.
+
+<AuthorizeView>
+	Hello @context.User.Identity?.Name!
+
+	@if (_notification > 0)
+	{
+		<p>New messages: @_notification</p>
+	}
+	else
+	{
+		<p>You don't have new messages</p>
+	}
+	
+	<a href="/chat">Go to chat</a>
+</AuthorizeView>
+
+@code {
+	private HubConnection? _hubConnection;
+	private int _notification = 0;
+
+	protected override async Task OnInitializedAsync()
+	{
+		_hubConnection = new HubConnectionBuilder()
+			.WithUrl(NavigationManager.ToAbsoluteUri("/notificationHub"))
+			.WithAutomaticReconnect()
+			.Build();
+
+		_hubConnection.On("ReceiveNotification", () =>
+		{
+			_notification++;
+			InvokeAsync(StateHasChanged);
+		});
+
+		await _hubConnection.StartAsync();
+	}
+}
