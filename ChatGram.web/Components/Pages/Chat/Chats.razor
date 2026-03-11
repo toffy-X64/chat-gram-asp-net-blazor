@@ -1,0 +1,70 @@
+﻿@page "/chats"
+
+@using ChatGram.Core.DTOs.Chats
+@using ChatGram.Services
+@using ChatGram.Storage.Identity
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+
+@inject PrivateChatService PrivateChatService;
+@inject UserManager<ApplicationUser> UserManager;
+@inject NavigationManager NavigationManager;
+
+@attribute [Authorize]
+
+<h3>Chats</h3>
+
+@if(_chats.Count <= 0)
+{
+	<div>
+		<h4>Chats not found</h4>
+	</div>
+}
+else
+{
+	@foreach (var chat in _chats)
+	{
+		<a href="/private/chat/@chat.Id">
+			@if (GetMyRoleInPrivateChat(chat) == "sender")
+			{
+				<p>Chat with @chat.ReceiverNickname</p>
+			}
+			else
+			{
+				<p>Chat with @chat.SenderNickname</p>
+			}
+		</a>
+	}
+}
+
+@code {
+	private ApplicationUser? currentUser;
+	private List<PrivateChatDto> _chats = new();
+
+	[CascadingParameter]
+	private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
+
+	private string GetMyRoleInPrivateChat(PrivateChatDto chat)
+	{
+		if (chat.SenderId == currentUser.Id)
+			return "sender";
+
+		return "receiver";
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		var authState = await AuthenticationStateTask;
+		var user = authState.User;
+
+		currentUser = await UserManager.GetUserAsync(user);
+		if (currentUser is null)
+		{
+			NavigationManager.NavigateTo("/");
+			return;
+		}
+
+		_chats = await PrivateChatService.GetUserPrivateChats(currentUser.Id);
+	}
+}

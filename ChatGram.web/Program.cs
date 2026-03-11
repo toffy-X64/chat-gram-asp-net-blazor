@@ -1,7 +1,7 @@
 using ChatGram.Storage;
 using ChatGram.Storage.Identity;
 using ChatGram.web.Components;
-using ChatGram.web.Hubs;
+using ChatGram.Services.Hubs;
 using Microsoft.AspNetCore.Identity;
 using ChatGram.Services.DependencyInjection;
 

@@ -1,4 +1,5 @@
 ﻿using ChatGram.Core.Abstractions;
+using ChatGram.Core.DTOs.Chats;
 using ChatGram.Core.DTOs.Messages;
 using ChatGram.Core.Entities.Message;
 using Microsoft.EntityFrameworkCore;
@@ -24,11 +25,11 @@ namespace ChatGram.Storage.Repositories
             _context.Add(message);
         }
 
-        public async Task<List<MessageDto>> GetMessages(int limit, int offset)
+        public async Task<List<MessageDto>> GetMessages(Guid chatId, int limit, int offset)
         {
             return await _context.Messages
                 .AsNoTracking()
-                .Where(x => !x.IsDeleted)
+                .Where(x => !x.IsDeleted && x.ChatId == chatId)
                 .OrderByDescending(x => x.CreatedAt)
                 .Skip(offset)
                 .Take(limit)

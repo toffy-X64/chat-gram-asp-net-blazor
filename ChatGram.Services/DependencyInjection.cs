@@ -34,6 +34,9 @@ namespace ChatGram.Services.DependencyInjection
             services.AddScoped<IMessageRepository, MessageRepository>();
             services.AddScoped<MessageService>();
 
+            services.AddScoped<IPrivateChatRepository, PrivateChatRepository>();
+            services.AddScoped<PrivateChatService>();
+
             return services;
         }
     }

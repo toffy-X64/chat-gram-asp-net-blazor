@@ -3,7 +3,7 @@ using ChatGram.Core.DTOs.Messages;
 using ChatGram.Core.Entities.Message;
 using Microsoft.AspNetCore.SignalR;
 
-namespace ChatGram.web.Hubs
+namespace ChatGram.Services.Hubs
 {
     public class MessageHub : Hub
     {

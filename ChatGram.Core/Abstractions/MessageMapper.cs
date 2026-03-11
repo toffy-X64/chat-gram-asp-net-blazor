@@ -17,6 +17,7 @@ namespace ChatGram.Core.Abstractions
                 TextMessage text => new TextMessageDto
                 {
                     Id = message.Id,
+                    ChatId = message.ChatId,
                     UserId = message.UserId,
                     Nickname = nickname,
                     CreatedAt = message.CreatedAt,
@@ -26,6 +27,7 @@ namespace ChatGram.Core.Abstractions
                 FileMessage file => new FileMessageDto
                 {
                     Id = message.Id,
+                    ChatId = message.ChatId,
                     UserId = message.UserId,
                     Nickname = nickname,
                     CreatedAt = message.CreatedAt,
@@ -36,6 +38,7 @@ namespace ChatGram.Core.Abstractions
                 GeoMessage geo => new GeoMessageDto
                 {
                     Id = message.Id,
+                    ChatId = message.ChatId,
                     UserId = message.UserId,
                     Nickname = nickname,
                     CreatedAt = message.CreatedAt,

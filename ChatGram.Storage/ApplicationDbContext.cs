@@ -1,4 +1,5 @@
-﻿using ChatGram.Core.Entities.Message;
+﻿using ChatGram.Core.Entities;
+using ChatGram.Core.Entities.Message;
 using ChatGram.Storage.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,7 @@ namespace ChatGram.Storage
         }
 
         public DbSet<MessageBase> Messages { get; set; }
+        public DbSet<PrivateChat> PrivateChats { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
