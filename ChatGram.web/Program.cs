@@ -1,14 +1,9 @@
-using ChatGram.Core.Abstractions;
-using ChatGram.Core.Services;
 using ChatGram.Storage;
 using ChatGram.Storage.Identity;
-using ChatGram.Storage.Repositories;
 using ChatGram.web.Components;
 using ChatGram.web.Hubs;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using ChatGram.Services.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,8 +16,7 @@ builder.Services.AddSignalR(options =>
     options.MaximumReceiveMessageSize = 102400;
 });
 
-builder.Services.AddScoped<IMessageRepository, MessageRepository>();
-builder.Services.AddScoped<MessageService>();
+builder.Services.AddBusinessLogic();
 
 builder.Services.AddCascadingAuthenticationState();
 
@@ -43,13 +37,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-var sqlServerConnectionString = builder.Configuration.GetConnectionString("SqlServer") ??
-    throw new Exception("Connection string `SqlServer` not found.");
-
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-{
-    options.UseSqlServer(sqlServerConnectionString);
-});
+builder.Services.AddStorage(builder.Configuration);
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
 {

@@ -16,7 +16,6 @@
   <ItemGroup>
     <ProjectReference Include="..\ChatGram.Core\ChatGram.Core.csproj" />
     <ProjectReference Include="..\ChatGram.Services\ChatGram.Services.csproj" />
-    <ProjectReference Include="..\ChatGram.Storage\ChatGram.Storage.csproj" />
   </ItemGroup>
 
 </Project>
